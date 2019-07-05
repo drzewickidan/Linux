@@ -185,6 +185,20 @@ static int __init set_reset_devices(char *str)
 
 __setup("reset_devices", set_reset_devices);
 
+/*
+* Command-line option to test kernel functionality
+*/
+unsigned int print_me;
+EXPORT_SYMBOL(print_me);
+
+static int __init set_print_me(char *str)
+{
+    print_me = 1;
+    return 1;
+}
+
+__setup("printme", set_print_me);
+
 static char * argv_init[MAX_INIT_ARGS+2] = { "init", NULL, };
 char * envp_init[MAX_INIT_ENVS+2] = { "HOME=/", "TERM=linux", NULL, };
 static const char *panic_later, *panic_param;
@@ -626,6 +640,8 @@ asmlinkage void __init start_kernel(void)
 	if (late_time_init)
 		late_time_init();
 	calibrate_delay();
+	if (print_me)
+		printk("Hello World from Me!\n");
 	pidmap_init();
 	pgtable_cache_init();
 	prio_tree_init();
