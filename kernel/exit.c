@@ -53,6 +53,8 @@
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
 
+struct myjoin_struct share;
+
 extern void sem_exit (void);
 
 static void exit_mm(struct task_struct * tsk);
@@ -1001,6 +1003,15 @@ fastcall NORET_TYPE void do_exit(long code)
 	/* causes final put_task_struct in finish_task_switch(). */
 	tsk->state = TASK_DEAD;
 
+	if (share.task_waiting)
+	{
+		if (tsk == share.target_task)
+		{
+			wake_up(&share.wait_queue);
+			share.task_waiting = 0;
+		}
+	}
+
 	schedule();
 	BUG();
 	/* Avoid "noreturn function does return".  */
@@ -1712,3 +1723,37 @@ asmlinkage long sys_waitpid(pid_t pid, int __user *stat_addr, int options)
 }
 
 #endif
+
+asmlinkage long sys_zombify(pid_t pid)
+{
+	struct task_struct *task = find_task_by_pid(pid);
+	if (task)
+	{
+		task->state = EXIT_ZOMBIE;
+		return 0;
+	}
+	return -EINVAL;
+}
+
+asmlinkage long sys_myjoin(pid_t target)
+{
+	if (current->pid == target)
+		return -EINVAL;
+	
+	struct task_struct *target_task = find_task_by_pid(target);
+	if (target_task)
+	{
+		task_lock(target_task);
+		share.task_waiting = 1;
+		share.current_task = current;
+		share.target_task = target_task;
+		init_waitqueue_head(&share.wait_queue);
+		task_unlock(target_task);
+		
+		if (pid_alive(target_task))
+			sleep_on(&share.wait_queue);
+		return 0;
+	}
+
+	return -EINVAL;
+}

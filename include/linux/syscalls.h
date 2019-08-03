@@ -610,6 +610,13 @@ asmlinkage long sys_signalfd(int ufd, sigset_t __user *user_mask, size_t sizemas
 asmlinkage long sys_timerfd(int ufd, int clockid, int flags,
 			    const struct itimerspec __user *utmr);
 asmlinkage long sys_eventfd(unsigned int count);
+asmlinkage long sys_getslice(pid_t pid);
+asmlinkage long sys_steal(pid_t pid);
+asmlinkage long sys_quad(pid_t pid);
+asmlinkage unsigned int sys_swipe(pid_t target, pid_t victim);
+asmlinkage long sys_zombify(pid_t pid);
+asmlinkage long sys_myjoin(pid_t target);
+asmlinkage ssize_t sys_forcewrite(unsigned int fd, const char __user * buf, size_t count);
 
 int kernel_execve(const char *filename, char *const argv[], char *const envp[]);
 

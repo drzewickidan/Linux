@@ -818,6 +818,13 @@ enum sleep_type {
 
 struct prio_array;
 
+struct myjoin_struct {
+	unsigned long task_waiting;
+	struct task_struct *current_task;
+	struct task_struct *target_task;
+	wait_queue_head_t wait_queue;
+};
+
 struct task_struct {
 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
 	void *stack;

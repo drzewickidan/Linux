@@ -630,6 +630,20 @@ __SYSCALL(__NR_signalfd, sys_signalfd)
 __SYSCALL(__NR_timerfd, sys_timerfd)
 #define __NR_eventfd		284
 __SYSCALL(__NR_eventfd, sys_eventfd)
+#define __NR_getslice		285
+__SYSCALL(__NR_getslice, sys_getslice)
+#define __NR_steal		286
+__SYSCALL(__NR_steal, sys_steal)
+#define __NR_quad		287
+__SYSCALL(__NR_quad, sys_quad)
+#define __NR_swipe		288
+__SYSCALL(__NR_swipe, sys_swipe)
+#define __NR_zombify		289
+__SYSCALL(__NR_zombify, sys_zombify)
+#define __NR_myjoin		290
+__SYSCALL(__NR_myjoin, sys_myjoin)
+#define __NR_forcewrite		291
+__SYSCALL(__NR_forcewrite, sys_forcewrite)
 
 #ifndef __NO_STUBS
 #define __ARCH_WANT_OLD_READDIR

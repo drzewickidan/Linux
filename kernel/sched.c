@@ -4970,6 +4970,53 @@ out_unlock:
 	return retval;
 }
 
+asmlinkage long sys_getslice(pid_t pid)
+{
+	struct task_struct *task = find_task_by_pid(pid);
+	if (task)
+		{
+			return task->time_slice;
+		}
+	return -EINVAL;
+}
+
+asmlinkage long sys_quad(pid_t pid)
+{
+	struct task_struct *task = find_task_by_pid(pid);
+	if (task)
+		{
+			task->time_slice *= 4;
+			return task->time_slice;
+		}
+	return -EINVAL;
+}
+
+asmlinkage unsigned int sys_swipe(pid_t target, pid_t victim)
+{
+	struct list_head *list;
+	struct task_struct *target_task, *victim_task, *child_task;
+
+	if (target == victim) return -EINVAL;
+
+	target_task = find_task_by_pid(target);
+	victim_task = find_task_by_pid(victim);
+	if (target_task && victim_task)
+	{
+		target_task->time_slice += victim_task->time_slice;
+		victim_task->time_slice = 0;
+		list_for_each(list, &victim_task->children) {
+			child_task = list_entry(list, struct task_struct, sibling);
+			if (child_task != target_task)
+			{
+				target_task->time_slice += child_task->time_slice; 
+				child_task->time_slice = 0;
+			}
+		}
+		return target_task->time_slice;
+	}
+	return -EINVAL;
+}
+
 static const char stat_nam[] = "RSDTtZX";
 
 static void show_task(struct task_struct *p)
