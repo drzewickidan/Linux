@@ -920,6 +920,57 @@ out:
 	return err;
 }
 
+asmlinkage long sys_mysend(pid_t pid, int n, char* buf, int nonblock)
+{
+	struct task_struct *task = find_task_by_pid(pid);
+	if (!task) return -ESRCH;
+
+	char* kbuf = (char*)kmalloc(n, GFP_KERNEL);
+	if (copy_from_user(kbuf, buf, n)) return -EFAULT;
+
+	struct msg_mymsg* mail = kmalloc(sizeof(struct msg_mymsg), GFP_KERNEL);
+	mail->m_pid = current->pid;
+	mail->m_ts = n;
+	mail->m_msg = kbuf;
+	INIT_LIST_HEAD(&mail->m_list);
+
+	read_lock(&task->ml_rw_lock);
+	list_add_tail(&mail->m_list, &task->mailbox);
+	read_unlock(&task->ml_rw_lock);
+
+	wake_up_process(task);
+	if (!(nonblock == 1)) set_current_state(TASK_INTERRUPTIBLE); /* if flag not set go to sleep */
+	schedule();
+
+	return 0;
+}
+
+asmlinkage long sys_myreceive(pid_t pid, int n, char* buf, int nonblock)
+{ 
+	struct msg_mymsg* mail = NULL;
+	struct task_struct *task;
+
+	while (list_empty(&current->mailbox)) {
+		if (nonblock == 1) return 0; /* if flag not set go to sleep */
+		set_current_state(TASK_INTERRUPTIBLE);
+		schedule();
+	}
+
+	list_for_each_entry(mail, &current->mailbox, m_list) {
+		if (pid > 0 && mail->m_pid != pid) continue; 
+		if (copy_to_user(buf, mail->m_msg, n)) return -EFAULT;
+
+		task = find_task_by_pid(mail->m_pid);
+		if (task) wake_up_process(task);
+
+		write_lock(&current->ml_rw_lock);
+		list_del(&mail->m_list);
+		write_unlock(&current->ml_rw_lock);
+
+		return strlen_user(buf);
+	}
+}
+
 #ifdef CONFIG_PROC_FS
 static int sysvipc_msg_proc_show(struct seq_file *s, void *it)
 {

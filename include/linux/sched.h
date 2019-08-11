@@ -1021,6 +1021,10 @@ struct task_struct {
 	unsigned int lockdep_recursion;
 #endif
 
+/* message passing support */
+	struct list_head mailbox;
+	rwlock_t ml_rw_lock;
+
 /* journalling filesystem info */
 	void *journal_info;
 

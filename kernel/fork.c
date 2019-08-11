@@ -1032,6 +1032,8 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 
 	INIT_LIST_HEAD(&p->children);
 	INIT_LIST_HEAD(&p->sibling);
+	INIT_LIST_HEAD(&p->mailbox);
+	rwlock_init(&p->ml_rw_lock);
 	p->vfork_done = NULL;
 	spin_lock_init(&p->alloc_lock);
 

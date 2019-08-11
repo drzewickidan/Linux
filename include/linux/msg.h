@@ -92,6 +92,13 @@ struct msg_queue {
 	struct list_head q_senders;
 };
 
+struct msg_mymsg {
+	struct list_head m_list;
+	pid_t m_pid;
+	int m_ts;
+	char* m_msg;
+};
+
 /* Helper routines for sys_msgsnd and sys_msgrcv */
 extern long do_msgsnd(int msqid, long mtype, void __user *mtext,
 			size_t msgsz, int msgflg);
