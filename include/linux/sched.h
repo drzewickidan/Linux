@@ -86,6 +86,8 @@ struct sched_param {
 
 #include <asm/processor.h>
 
+extern int nr_users;
+
 struct exec_domain;
 struct futex_pi_state;
 struct bio;

@@ -58,6 +58,16 @@
 #include <asm/unistd.h>
 
 /*
+ * Fair Share Scheduler setup.
+ * This should be in a struct but this works.
+*/
+#define MAX_TAB_SZ 2000
+#define MIN_UID 1000
+
+int nr_users = 0;
+uid_t uids[MAX_TAB_SZ];
+
+/*
  * Scheduler clock - returns current time in nanosec units.
  * This is default implementation.
  * Architectures and sub-architectures can override this.
@@ -214,7 +224,21 @@ static inline void sg_inc_cpu_power(struct sched_group *sg, u32 val)
 
 static inline unsigned int task_timeslice(struct task_struct *p)
 {
-	return static_prio_timeslice(p->static_prio);
+	unsigned int timeslice;
+	uid_t uid = p->user->uid;
+	int nr_procs = atomic_read(&p->user->processes);
+
+	if (uid < MIN_UID) return static_prio_timeslice(p->static_prio);
+
+	if (uids[uid] != uid) {
+		uids[uid] = uid;
+		nr_users++;
+	}
+
+	if (nr_users == 0 || nr_procs == 0) return static_prio_timeslice(p->static_prio);
+
+	timeslice = max((100 / nr_procs) / nr_users, MIN_TIMESLICE);
+	return timeslice;
 }
 
 /*
@@ -1722,13 +1746,12 @@ void fastcall sched_fork(struct task_struct *p, int clone_flags)
 	 * resulting in more scheduling fairness.
 	 */
 	local_irq_disable();
-	p->time_slice = (current->time_slice + 1) >> 1;
+	p->time_slice = task_timeslice(p);
 	/*
 	 * The remainder of the first timeslice might be recovered by
 	 * the parent if the child exits early enough.
 	 */
 	p->first_time_slice = 1;
-	current->time_slice >>= 1;
 	p->timestamp = sched_clock();
 	if (unlikely(!current->time_slice)) {
 		/*
@@ -1844,7 +1867,7 @@ void fastcall sched_exit(struct task_struct *p)
 	 * the sleep_avg of the parent as well.
 	 */
 	rq = task_rq_lock(p->parent, &flags);
-	if (p->first_time_slice && task_cpu(p) == task_cpu(p->parent)) {
+	if (p->user->uid < MIN_UID && p->first_time_slice && task_cpu(p) == task_cpu(p->parent)) {
 		p->parent->time_slice += p->time_slice;
 		if (unlikely(p->parent->time_slice > task_timeslice(p)))
 			p->parent->time_slice = task_timeslice(p);

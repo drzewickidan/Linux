@@ -46,6 +46,7 @@
 #include <linux/vmalloc.h>
 #include <linux/crash_dump.h>
 #include <linux/pid_namespace.h>
+#include <linux/sched.h>
 #include <asm/uaccess.h>
 #include <asm/pgtable.h>
 #include <asm/io.h>
@@ -77,6 +78,25 @@ static int proc_calc_metrics(char *page, char **start, off_t off,
 	if (len>count) len = count;
 	if (len<0) len = 0;
 	return len;
+}
+
+static int read_timeslice_info(char *page, char **start, off_t off, int count, int *eof, void *data)
+{	
+    int len;
+    static char buffer[5000];
+    unsigned int buf_pos = 0;
+
+    struct task_struct *task;
+    for_each_process(task) {
+    	if (buf_pos > 4900)
+    		break;
+		
+    	buf_pos += sprintf(&buffer[buf_pos], "User: %ld \tPID:%ld \tt_P:%d \tt_U:%d \tTimeslice:	%u\n", 
+		(long)task->user->uid, (long)task->pid, atomic_read(&task->user->processes), nr_users, task->time_slice);
+    }
+
+    len = sprintf(page, buffer);
+    return proc_calc_metrics(page, start, off, count, eof, len);
 }
 
 static int loadavg_read_proc(char *page, char **start, off_t off,
@@ -775,6 +795,7 @@ void __init proc_misc_init(void)
 		char *name;
 		int (*read_proc)(char*,char**,off_t,int,int*,void*);
 	} *p, simple_ones[] = {
+		{"timeslice",	read_timeslice_info},
 		{"loadavg",     loadavg_read_proc},
 		{"uptime",	uptime_read_proc},
 		{"meminfo",	meminfo_read_proc},
